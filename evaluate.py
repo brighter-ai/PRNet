@@ -2,6 +2,7 @@ import argparse
 import importlib
 from glob import glob
 import os
+import pickle
 import sys
 from time import time
 
@@ -14,6 +15,7 @@ from skimage.transform import estimate_transform, warp
 parser = argparse.ArgumentParser()
 parser.add_argument('--path', required=True, help='e.g. /home/tomas/brighterai/PRNet/predict_prnet_tf.py')
 parser.add_argument('--predictor', default='predict', help='Function in predictor file that predicts uv posmap from (image). Default: predict')
+parser.add_argument('--save_results', default='', help='Name to save the results as')
 parser.add_argument('--debug', '-d', action='store_true', help='print debug info')
 opt = parser.parse_args()
 
@@ -108,6 +110,12 @@ for i, image_path in enumerate(image_path_list):
         print('real_landmarks means {}'.format(np.mean(real_landmarks, axis=1)))
         print('pred_landmarks shape {}'.format(pred_landmarks.shape))
         print('pred_landmarks means {}'.format(np.mean(pred_landmarks, axis=1)))
+
+    if opt.save_results != '':
+        save_dict = {'model': 'original_prnet_tensorflow', 'uvmap': pred_uv, 'landmarks': pred_landmarks}
+        save_path = uv_path[:-4] + '_' + opt.save_results + '.pkl'
+        with open(save_path, 'wb') as file:
+            pickle.dump(save_dict, file)
 
     error_2D = np.sum(np.sqrt((real_landmarks[:2, :] - pred_landmarks[:2, :]) ** 2))
     error_2D = (error_2D / 68.) / bbox_size  # per landmark, normalize by bbox size
