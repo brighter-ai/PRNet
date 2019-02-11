@@ -3,6 +3,7 @@ import importlib
 from glob import glob
 import os
 import sys
+from time import time
 
 import numpy as np
 import scipy.io as sio
@@ -53,7 +54,9 @@ def predict_3D_landmarks(image, bbox):
     cropped_image = warp(image, tform.inverse, output_shape=(resolution, resolution))
 
     # Predict uvmap
+    stime = time()
     cropped_uvmap = Predictor(cropped_image)
+    ntime = time() - stime
 
     # Convert predicted uvmap back to original image dimensions
     cropped_vertices = np.reshape(cropped_uvmap, [-1, 3]).T
@@ -68,14 +71,15 @@ def predict_3D_landmarks(image, bbox):
     kpt[:, 2] = kpt[:, 2] - np.mean(kpt[:, 2])
     kpt = kpt.T
 
-    return uvmap, kpt
+    return uvmap, kpt, ntime
 
 
 N = 0
 NME_2D = 0
 NME_3D = 0
 MSE_UV = 0
-for i, image_path in enumerate(image_path_list[:10]):
+prediction_time = 0
+for i, image_path in enumerate(image_path_list):
 
     image = imread(image_path)
 
@@ -91,7 +95,7 @@ for i, image_path in enumerate(image_path_list[:10]):
     bbox_size = ((bbox[1] - bbox[0]) + (bbox[3] - bbox[2])) / 2
 
     # pred_uv, pred_landmarks = predict_3D_landmarks(image, np.array([bbox[0], bbox[1], bbox[2], bbox[3]]))
-    pred_uv, pred_landmarks = predict_3D_landmarks(image, bbox)
+    pred_uv, pred_landmarks, ntime = predict_3D_landmarks(image, bbox)
 
     if opt.debug:
         print('uv_mask shape {}'.format(uv_mask.shape))
@@ -119,17 +123,19 @@ for i, image_path in enumerate(image_path_list[:10]):
         error_uv = -1
         MSE_UV = -1
 
+    prediction_time = ((prediction_time * N) + ntime) / (N + 1)
     NME_2D = ((NME_2D * N) + error_2D) / (N + 1)
     NME_3D = ((NME_3D * N) + error_3D) / (N + 1)
     MSE_UV = ((MSE_UV * N) + error_uv) / (N + 1)
     N += 1
 
-    print('{: >4d} / {: >4d} = {:.2%}  |  NME_2D (so far): {:.2%}  |  NME_3D (so far): {:.2%}  |  MSE_UV (so far): {:.2f}'.format(
+    print(
+        '{: >4d} / {: >4d} = {:.2%}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.2f}  |  time to predict 1: {:.3f}s'.format(
         i,
         len(image_path_list),
         i / len(image_path_list),
-        NME_2D, NME_3D, MSE_UV))
+        NME_2D, NME_3D, MSE_UV, prediction_time))
 
-print('######\n final results  |  N:{}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.2f} \n######'.format(
-    N, NME_2D, NME_3D, MSE_UV))
+print('######\n final results  |  N:{}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.2f}  |  time to predict 1: {:.3f}s \n######'.format(
+    N, NME_2D, NME_3D, MSE_UV, prediction_time))
 
