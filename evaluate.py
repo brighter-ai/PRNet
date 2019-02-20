@@ -142,16 +142,16 @@ for i, base_path in enumerate(base_path_list):
         print('pred_landmarks shape {}'.format(pred_landmarks.shape))
         print('pred_landmarks means {}'.format(np.mean(pred_landmarks, axis=1)))
 
-    if i <= 10 and opt.save_results:
-        visualisations_path = '/home/{}/test_prnet_{}'.format(getpass.getuser(), opt.save_results)
-        os.makedirs(visualisations_path, exist_ok=True)
-        draw_lms(os.path.join(visualisations_path, image_path.split('/')[-1]),
-                 image, real_landmarks, pred_landmarks, real_uv, pred_uv)
-
     if opt.save_results != '':
         os.makedirs('/'.join(save_base_path.split('/')[:-1]), exist_ok=True)
         shutil.copy(image_path, save_base_path + '.jpg')
         np.save(save_base_path + '.npy', pred_uv)
+
+        if i <= 10:
+            visualisations_path = '/home/{}/test_prnet_{}'.format(getpass.getuser(), opt.save_results)
+            os.makedirs(visualisations_path, exist_ok=True)
+            draw_lms(os.path.join(visualisations_path, image_path.split('/')[-1]),
+                     image, real_landmarks, pred_landmarks, real_uv, pred_uv)
 
     error_2D = np.sum(np.sqrt((real_landmarks[:2, :] - pred_landmarks[:2, :]) ** 2))
     error_2D = (error_2D / 68.) / bbox_size  # per landmark, normalize by bbox size
@@ -162,7 +162,7 @@ for i, base_path in enumerate(base_path_list):
         error_3D = -1
         NME_3D = -1
     if pred_uv is not None:
-        error_uv = np.mean((uv_mask * (real_uv - pred_uv)) ** 2)
+        error_uv = (((real_uv/(256.*1.1) - pred_uv/(256.*1.1)) ** 2) * uv_mask).mean()
     else:
         error_uv = -1
         MSE_UV = -1
@@ -174,12 +174,12 @@ for i, base_path in enumerate(base_path_list):
     N += 1
 
     print(
-        '{: >4d} / {: >4d} = {:.2%}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.2f}  |  time to predict 1: {:.3f}s'.format(
+        '{: >4d} / {: >4d} = {:.2%}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.7f}  |  time to predict 1: {:.3f}s'.format(
         i,
         len(base_path_list),
         i / len(base_path_list),
         NME_2D, NME_3D, MSE_UV, prediction_time))
 
-print('######\n final results  |  N:{}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.2f}  |  time to predict 1: {:.3f}s \n######'.format(
+print('######\n final results  |  N:{}  |  NME_2D: {:.2%}  |  NME_3D: {:.2%}  |  MSE_UV: {:.7f}  |  time to predict 1: {:.3f}s \n######'.format(
     N, NME_2D, NME_3D, MSE_UV, prediction_time))
 
