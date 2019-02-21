@@ -172,7 +172,7 @@ for i, base_path in enumerate(base_path_list):
         error_3D = -1
         NME_3D = -1
     if pred_uv is not None:
-        error_uv = (((real_uv/(256.*1.1) - pred_uv/(256.*1.1)) ** 2) * uv_mask).mean()
+        error_uv = (((real_uv/(256.) - pred_uv/(256.)) ** 2) * uv_mask).mean()
     else:
         error_uv = -1
         MSE_UV = -1
