@@ -22,7 +22,7 @@ parser.add_argument('--debug', '-d', action='store_true', help='print debug info
 opt = parser.parse_args()
 
 uv_kpt_ind = np.loadtxt('Data/uv-data/uv_kpt_ind.txt').astype(np.int32)
-uv_mask = imread('Data/uv-data/uv_face_weight_mask.png') / 255.
+uv_mask = np.load('Data/uv-data/uv_face_weight_mask.npy') / 16.
 uv_mask = np.array([uv_mask, uv_mask, uv_mask]).T
 uv_mask = np.swapaxes(uv_mask, 0, 1)
 
